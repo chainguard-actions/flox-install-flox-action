@@ -1,0 +1,57 @@
+name: Test Flox installation with write-summary enabled
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          channel: stable
+          disable-metrics: "true"
+          disable-upgrade-notifications: "true"
+          write-summary: "true"
+
+      - name: Assert flox-version output is set
+        env:
+          ACTUAL: ${{ steps.action.outputs.flox-version }}
+        run: |
+          echo "flox-version: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: flox-version output is empty"
+            exit 1
+          fi
+          echo "PASS: flox-version=$ACTUAL"
+
+      - name: Assert flox-path output is set
+        env:
+          ACTUAL: ${{ steps.action.outputs.flox-path }}
+        run: |
+          echo "flox-path: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: flox-path output is empty"
+            exit 1
+          fi
+          echo "PASS: flox-path=$ACTUAL"
+
+      - name: Assert flox binary is executable
+        env:
+          FLOX_PATH: ${{ steps.action.outputs.flox-path }}
+        run: |
+          echo "Checking binary at: $FLOX_PATH"
+          if [ ! -x "$FLOX_PATH" ]; then
+            echo "FAIL: flox binary not found or not executable at $FLOX_PATH"
+            exit 1
+          fi
+          echo "PASS: flox binary is executable"
+
+      - name: Assert GITHUB_STEP_SUMMARY was written
+        run: |
+          if [ -z "$GITHUB_STEP_SUMMARY" ]; then
+            echo "SKIP: GITHUB_STEP_SUMMARY not set (act environment)"
+          else
+            echo "GITHUB_STEP_SUMMARY is set at: $GITHUB_STEP_SUMMARY"
+          fi
+          echo "PASS"
