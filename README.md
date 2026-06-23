@@ -9,6 +9,7 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 | Version | Tag | Upstream commit |
 |---------|-----|-----------------|
 | v2.5.1 | [`v2.5.1`](https://github.com/chainguard-actions/flox-install-flox-action/tree/v2.5.1) | [`f6002ed`](https://github.com/flox/install-flox-action/commit/f6002ed63e483f134001de7b4b45be891e00b09f) |
+| v2.5.2 | [`v2.5.2`](https://github.com/chainguard-actions/flox-install-flox-action/tree/v2.5.2) | [`8c71d71`](https://github.com/flox/install-flox-action/commit/8c71d71672ea52e1494b168ac0f27d46b96068be) |
 
 ## Privacy
 
