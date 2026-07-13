@@ -1,0 +1,51 @@
+name: Test flox installation with metrics disabled
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: install-flox
+        uses: .
+        with:
+          disable-metrics: "true"
+          use-cache: "false"
+          github-token: ${{ github.token }}
+      - name: Assert flox-version output is set
+        env:
+          FLOX_VERSION: ${{ steps.install-flox.outputs.flox-version }}
+        run: |
+          echo "flox-version: $FLOX_VERSION"
+          if [ -z "$FLOX_VERSION" ]; then
+            echo "FAIL: flox-version output is empty"
+            exit 1
+          fi
+          echo "PASS: flox-version=$FLOX_VERSION"
+      - name: Assert flox-path output is set
+        env:
+          FLOX_PATH: ${{ steps.install-flox.outputs.flox-path }}
+        run: |
+          echo "flox-path: $FLOX_PATH"
+          if [ -z "$FLOX_PATH" ]; then
+            echo "FAIL: flox-path output is empty"
+            exit 1
+          fi
+          echo "PASS: flox-path=$FLOX_PATH"
+      - name: Assert flox binary is executable
+        env:
+          FLOX_PATH: ${{ steps.install-flox.outputs.flox-path }}
+        run: |
+          echo "Checking flox binary at: $FLOX_PATH"
+          if [ ! -x "$FLOX_PATH" ]; then
+            echo "FAIL: flox binary not found or not executable at $FLOX_PATH"
+            exit 1
+          fi
+          echo "PASS: flox binary is executable"
+      - name: Assert flox is runnable
+        run: |
+          if ! flox --version; then
+            echo "FAIL: flox --version failed"
+            exit 1
+          fi
+          echo "PASS: flox is runnable"

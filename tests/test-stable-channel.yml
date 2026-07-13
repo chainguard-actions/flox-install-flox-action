@@ -1,0 +1,57 @@
+name: Test flox installation from stable channel
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: install-flox
+        uses: .
+        with:
+          channel: "stable"
+          disable-upgrade-notifications: "true"
+          disable-metrics: "true"
+          github-token: ${{ github.token }}
+      - name: Assert flox-version output is set
+        env:
+          FLOX_VERSION: ${{ steps.install-flox.outputs.flox-version }}
+        run: |
+          echo "flox-version: $FLOX_VERSION"
+          if [ -z "$FLOX_VERSION" ]; then
+            echo "FAIL: flox-version output is empty"
+            exit 1
+          fi
+          echo "PASS: flox-version=$FLOX_VERSION"
+      - name: Assert flox-path output is set
+        env:
+          FLOX_PATH: ${{ steps.install-flox.outputs.flox-path }}
+        run: |
+          echo "flox-path: $FLOX_PATH"
+          if [ -z "$FLOX_PATH" ]; then
+            echo "FAIL: flox-path output is empty"
+            exit 1
+          fi
+          echo "PASS: flox-path=$FLOX_PATH"
+      - name: Assert nix-detected output is boolean
+        env:
+          NIX_DETECTED: ${{ steps.install-flox.outputs.nix-detected }}
+        run: |
+          echo "nix-detected: $NIX_DETECTED"
+          if [ "$NIX_DETECTED" != "true" ] && [ "$NIX_DETECTED" != "false" ]; then
+            echo "FAIL: nix-detected should be 'true' or 'false', got '$NIX_DETECTED'"
+            exit 1
+          fi
+          echo "PASS: nix-detected=$NIX_DETECTED"
+      - name: Assert flox is runnable and version matches output
+        env:
+          FLOX_VERSION: ${{ steps.install-flox.outputs.flox-version }}
+        run: |
+          ACTUAL_VERSION=$(flox --version 2>&1 | head -1)
+          echo "flox --version output: $ACTUAL_VERSION"
+          echo "expected version string to contain: $FLOX_VERSION"
+          if ! echo "$ACTUAL_VERSION" | grep -qF "$FLOX_VERSION"; then
+            echo "FAIL: version mismatch — flox --version='$ACTUAL_VERSION', output='$FLOX_VERSION'"
+            exit 1
+          fi
+          echo "PASS: version matches"
