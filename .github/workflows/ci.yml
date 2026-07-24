@@ -1,0 +1,254 @@
+name: "CI"
+
+on:
+  pull_request:
+  push:
+    branches:
+      - "main"
+  schedule:
+    - cron: '20 2 * * *'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+
+  test-javascript:
+    name: "JavaScript Tests"
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+
+    permissions:
+      contents: read
+
+    strategy:
+      matrix:
+        os:
+          - "ubuntu-latest"
+          - "macos-latest"
+
+    steps:
+      - name: "Checkout"
+        uses: "actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803" # v6
+
+      - name: "Install Flox"
+        uses: "./"
+        with:
+          disable-metrics: true
+
+      - name: "Cache Dependencies"
+        id: cache
+        uses: "actions/cache@8070854e57d983bdd2887b0a708ad985f77398ab"
+        env:
+          GITHUB_ACTIONS_RUNNER_FORCED_NODE_VERSION: node20
+        with:
+          key: npm-${{ matrix.os }}-${{ hashFiles('package-lock.json') }}
+          path: ./node_modules
+          restore-keys: |
+            npm-feature-${{ matrix.os }}-${{ hashFiles('package-lock.json') }}
+            npm-feature-${{ matrix.os }}-
+            npm-feature-
+            npm-
+
+      - name: "Install Dependencies"
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: flox activate -- npm ci
+
+      - name: "Check Format"
+        run: flox activate -- npm run format:check
+
+      - name: "Test"
+        run: flox activate -- npm run ci-test
+
+  test-action:
+    name: "Github Action Test"
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+
+    permissions:
+      contents: read
+
+    strategy:
+      matrix:
+        os:
+          - "ubuntu-latest"
+          - "macos-latest"
+        release-env:
+          - stable
+          - nightly
+
+    steps:
+      - name: "Checkout"
+        uses: "actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803" # v6
+
+      - name: "Test Local Action"
+        uses: "./"
+        with:
+          channel: "${{ matrix.release-env }}"
+          disable-metrics: true
+
+
+      - name: "Test: flox --version"
+        run: |
+          flox --version
+
+      - name: "Test: flox config"
+        run: |
+          export disable_metrics_value="$(flox config --list | grep 'disable_metrics' | cut -d' ' -f3)"
+          if [[ "$disable_metrics_value" != "true" ]]; then
+            echo "Expected 'disable_metrics' to be 'true' but got '$disable_metrics_value'"
+            exit 1
+          fi
+
+  test-new-inputs:
+    name: "Test New Inputs"
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+
+    permissions:
+      contents: read
+
+    strategy:
+      matrix:
+        os:
+          - "ubuntu-latest"
+          - "macos-latest"
+
+    steps:
+      - name: "Checkout"
+        uses: "actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803" # v6
+
+      - name: "Install Flox with new inputs"
+        id: install
+        uses: "./"
+        with:
+          channel: stable
+          disable-metrics: "true"
+          disable-upgrade-notifications: "true"
+
+      - name: "Verify outputs"
+        env:
+          FLOX_VERSION: ${{ steps.install.outputs.flox-version }}
+          FLOX_PATH: ${{ steps.install.outputs.flox-path }}
+          NIX_DETECTED: ${{ steps.install.outputs.nix-detected }}
+        run: |
+          echo "Flox version: $FLOX_VERSION"
+          echo "Flox path: $FLOX_PATH"
+          echo "Nix detected: $NIX_DETECTED"
+          test -n "$FLOX_VERSION"
+          test -n "$FLOX_PATH"
+
+      - name: "Verify config"
+        run: |
+          flox config --list | grep -q 'disable_metrics = true'
+          flox config --list | grep -q 'upgrade_notifications = false'
+
+  test-existing-nix:
+    name: "Test with Existing Nix (${{ matrix.nix-installer }})"
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+
+    permissions:
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - "ubuntu-latest"
+          - "macos-latest"
+        nix-installer:
+          - "determinate-systems"
+          - "cachix"
+
+    steps:
+      - name: "Checkout"
+        uses: "actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803" # v6
+
+      - name: "Install Nix (DeterminateSystems)"
+        if: matrix.nix-installer == 'determinate-systems'
+        uses: "DeterminateSystems/nix-installer-action@33c9ab3ef95cd57c164d9d6eb1f9a46338538d41" # main
+
+      - name: "Install Nix (Cachix)"
+        if: matrix.nix-installer == 'cachix'
+        uses: "cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342" # v31
+
+      - name: "Install Flox (using existing Nix)"
+        uses: "./"
+        with:
+          disable-metrics: true
+
+      - name: "Test: flox --version"
+        run: |
+          flox --version
+
+      - name: "Test: flox config"
+        run: |
+          export disable_metrics_value="$(flox config --list | grep 'disable_metrics' | cut -d' ' -f3)"
+          if [[ "$disable_metrics_value" != "true" ]]; then
+            echo "Expected 'disable_metrics' to be 'true' but got '$disable_metrics_value'"
+            exit 1
+          fi
+
+  test-act:
+    name: "Test with nektos/act"
+    runs-on: "ubuntu-latest"
+    timeout-minutes: 30
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: "Checkout"
+        uses: "actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803" # v6
+
+      - name: "Install act"
+        run: |
+          curl -fsSL -o /tmp/install-act.sh \
+            https://raw.githubusercontent.com/nektos/act/master/install.sh
+          sudo bash /tmp/install-act.sh
+
+      - name: "Pull container image"
+        run: >-
+          docker pull
+          ghcr.io/catthehacker/ubuntu:js-24.04
+
+      - name: "Run action with act"
+        run: >-
+          ./bin/act push
+          -P ubuntu-latest=ghcr.io/catthehacker/ubuntu:js-24.04
+          -j test-action
+          --matrix os:ubuntu-latest
+          --matrix release-env:stable
+          --env FLOX_DISABLE_METRICS=true
+
+  report-failure:
+    name: "Report Failure"
+    runs-on: "ubuntu-latest"
+    timeout-minutes: 30
+
+    permissions: {}
+
+    if: ${{ failure() && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'schedule') }}
+
+    needs:
+      - "test-javascript"
+      - "test-action"
+      - "test-new-inputs"
+      - "test-existing-nix"
+      - "test-act"
+
+    steps:
+      - name: "Slack Notification"
+        uses: "rtCamp/action-slack-notify@33ca3be66c6f378fe1610fd1d5258632dbed5e58" # v2
+        env:
+          SLACK_TITLE:      "Something broke CI for flox/flox on main"
+          SLACK_FOOTER:     "Thank you for caring"
+          SLACK_WEBHOOK:    "${{ secrets.MANAGED_SLACK_WEBHOOK }}"
+          SLACK_USERNAME:   "GitHub"
+          SLACK_ICON_EMOJI: ":poop:"
+          SLACK_COLOR:      "#ff2800"  # ferrari red -> https://encycolorpedia.com/ff2800
+          SLACK_LINK_NAMES: true
