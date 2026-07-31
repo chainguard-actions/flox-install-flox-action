@@ -1,0 +1,47 @@
+name: "Update Flox Environment"
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * 0' # runs weekly on Sunday at 00:00
+
+permissions:
+  contents: read
+
+env:
+  FLOX_DISABLE_METRICS: "true"
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    timeout-minutes: 30
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
+
+        with:
+          fetch-depth: 0
+
+      - name: "Install Flox"
+        uses: flox/install-flox-action@8c71d71672ea52e1494b168ac0f27d46b96068be # v2.5.2
+
+
+      - name: "Update Flox Environment"
+        run: flox update
+
+      - name: "Create Pull Request"
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8
+
+        with:
+          token: ${{ secrets.MANAGED_FLOXBOT_GITHUB_ACCESS_TOKEN_REPO_SCOPE }}
+          commit-message: "chore: update flox environment"
+          title: "chore: update flox environment"
+          body: |
+            Automated update of Flox environment packages.
+
+            Run `flox activate` to test the updated environment locally.
+          branch: update-flox-env
+          delete-branch: true

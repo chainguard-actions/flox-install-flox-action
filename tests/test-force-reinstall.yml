@@ -1,0 +1,69 @@
+name: Test force-reinstall input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      # First installation
+      - id: first-install
+        uses: .
+        with:
+          channel: stable
+          disable-metrics: "true"
+          use-cache: "false"
+
+      - name: Assert first install succeeded
+        env:
+          FLOX_VERSION: ${{ steps.first-install.outputs.flox-version }}
+          FLOX_PREINSTALLED: ${{ steps.first-install.outputs.flox-preinstalled }}
+        run: |
+          echo "first install flox-version: $FLOX_VERSION"
+          echo "first install flox-preinstalled: $FLOX_PREINSTALLED"
+          if [ -z "$FLOX_VERSION" ]; then
+            echo "FAIL: flox-version output is empty after first install"
+            exit 1
+          fi
+          if [ "$FLOX_PREINSTALLED" != "false" ]; then
+            echo "FAIL: expected flox-preinstalled=false on first install, got '$FLOX_PREINSTALLED'"
+            exit 1
+          fi
+          echo "PASS: first install succeeded, version '$FLOX_VERSION'"
+
+      # Second installation with force-reinstall=true
+      - id: force-install
+        uses: .
+        with:
+          channel: stable
+          disable-metrics: "true"
+          use-cache: "false"
+          force-reinstall: "true"
+
+      - name: Assert force-reinstall succeeded
+        env:
+          FLOX_VERSION: ${{ steps.force-install.outputs.flox-version }}
+          FLOX_PREINSTALLED: ${{ steps.force-install.outputs.flox-preinstalled }}
+        run: |
+          echo "force-reinstall flox-version: $FLOX_VERSION"
+          echo "force-reinstall flox-preinstalled: $FLOX_PREINSTALLED"
+          if [ -z "$FLOX_VERSION" ]; then
+            echo "FAIL: flox-version output is empty after force-reinstall"
+            exit 1
+          fi
+          # force-reinstall=true means flox-preinstalled should be false
+          if [ "$FLOX_PREINSTALLED" != "false" ]; then
+            echo "FAIL: expected flox-preinstalled=false with force-reinstall=true, got '$FLOX_PREINSTALLED'"
+            exit 1
+          fi
+          echo "PASS: force-reinstall succeeded, version '$FLOX_VERSION'"
+
+      - name: Assert flox binary is still functional after force-reinstall
+        run: |
+          if ! command -v flox >/dev/null 2>&1; then
+            echo "FAIL: flox is not on PATH after force-reinstall"
+            exit 1
+          fi
+          echo "PASS: flox is on PATH after force-reinstall"
+          flox --version

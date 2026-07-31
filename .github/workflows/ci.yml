@@ -1,0 +1,362 @@
+name: "CI"
+
+on:
+  pull_request:
+  push:
+    branches:
+      - "main"
+  schedule:
+    - cron: '20 2 * * *'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+
+  test-javascript:
+    name: "JavaScript Tests"
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+
+    strategy:
+      matrix:
+        os:
+          - "ubuntu-latest"
+          - "ubuntu-slim"
+          - "macos-latest"
+
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
+
+
+      - name: "Install Flox"
+        uses: "./"
+        with:
+          disable-metrics: true
+
+      - name: "Cache Dependencies"
+        id: cache
+        uses: "actions/cache@8070854e57d983bdd2887b0a708ad985f77398ab"
+        env:
+          GITHUB_ACTIONS_RUNNER_FORCED_NODE_VERSION: node20
+        with:
+          key: npm-${{ matrix.os }}-${{ hashFiles('package-lock.json') }}
+          path: ./node_modules
+          restore-keys: |
+            npm-feature-${{ matrix.os }}-${{ hashFiles('package-lock.json') }}
+            npm-feature-${{ matrix.os }}-
+            npm-feature-
+            npm-
+
+      - name: "Install Dependencies"
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: flox activate -- npm ci
+
+      - name: "Check Format"
+        run: flox activate -- npm run format:check
+
+      - name: "Test"
+        run: flox activate -- npm run ci-test
+
+  test-action:
+    name: "Github Action Test"
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+
+    strategy:
+      matrix:
+        os:
+          - "ubuntu-latest"
+          - "ubuntu-slim"
+          - "macos-latest"
+        release-env:
+          - stable
+          - nightly
+
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
+
+
+      - name: "Test Local Action"
+        uses: "./"
+        with:
+          channel: "${{ matrix.release-env }}"
+          disable-metrics: true
+
+      - name: "Test: flox"
+        run: |
+          flox --version
+          cd $(mktemp -d)
+          flox init
+          flox install hello
+          flox activate -- hello
+
+      - name: "Test: flox config"
+        run: |
+          export disable_metrics_value="$(flox config --list | grep 'disable_metrics' | cut -d' ' -f3)"
+          if [[ "$disable_metrics_value" != "true" ]]; then
+            echo "Expected 'disable_metrics' to be 'true' but got '$disable_metrics_value'"
+            exit 1
+          fi
+
+  test-new-inputs:
+    name: "Test New Inputs"
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+
+    strategy:
+      matrix:
+        os:
+          - "ubuntu-latest"
+          - "ubuntu-slim"
+          - "macos-latest"
+
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
+
+
+      - name: "Install Flox with new inputs"
+        id: install
+        uses: "./"
+        with:
+          channel: stable
+          disable-metrics: "true"
+          disable-upgrade-notifications: "true"
+
+      - name: "Verify outputs"
+        env:
+          FLOX_VERSION: ${{ steps.install.outputs.flox-version }}
+          FLOX_PATH: ${{ steps.install.outputs.flox-path }}
+          NIX_DETECTED: ${{ steps.install.outputs.nix-detected }}
+        run: |
+          echo "Flox version: $FLOX_VERSION"
+          echo "Flox path: $FLOX_PATH"
+          echo "Nix detected: $NIX_DETECTED"
+          test -n "$FLOX_VERSION"
+          test -n "$FLOX_PATH"
+
+      - name: "Verify config"
+        run: |
+          flox config --list | grep -q 'disable_metrics = true'
+          flox config --list | grep -q 'upgrade_notifications = false'
+
+      - name: "Test: flox"
+        run: |
+          flox --version
+          cd $(mktemp -d)
+          flox init
+          flox install hello
+          flox activate -- hello
+
+  test-existing-nix:
+    name: "Test with Existing Nix (${{ matrix.nix-installer }})"
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - "ubuntu-latest"
+          - "ubuntu-slim"
+          - "macos-latest"
+        nix-installer:
+          - "determinate-systems"
+          - "cachix"
+
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
+
+
+      - name: "Install Nix (DeterminateSystems)"
+        if: matrix.nix-installer == 'determinate-systems'
+        uses: DeterminateSystems/nix-installer-action@a7ad9c4f0c65208097f4d34f3cfa1913b80cce5c # main
+
+
+      - name: "Install Nix (Cachix)"
+        if: matrix.nix-installer == 'cachix'
+        uses: cachix/install-nix-action@8aa03977d8d733052d78f4e008a241fd1dbf36b3 # v31
+
+
+      - name: "Install Flox (using existing Nix)"
+        uses: "./"
+        with:
+          disable-metrics: true
+
+      - name: "Test: flox"
+        run: |
+          flox --version
+          cd $(mktemp -d)
+          flox init
+          flox install hello
+          flox activate -- hello
+
+      - name: "Test: flox config"
+        run: |
+          export disable_metrics_value="$(flox config --list | grep 'disable_metrics' | cut -d' ' -f3)"
+          if [[ "$disable_metrics_value" != "true" ]]; then
+            echo "Expected 'disable_metrics' to be 'true' but got '$disable_metrics_value'"
+            exit 1
+          fi
+
+  test-repeat-run:
+    name: "Test repeated runs on one machine"
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - "ubuntu-latest"
+          - "ubuntu-slim"
+          - "macos-latest"
+
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
+
+
+      - name: "Install Flox (first run)"
+        uses: "./"
+        with:
+          disable-metrics: "true"
+
+      # Hosted runners start each job on a fresh VM, so reaching the state a
+      # self-hosted runner is in after one job means recreating it by hand: the
+      # token this action recorded has expired, and a runner that has been
+      # through an older version also carries a block written into nix.conf.
+      - name: "Age the recorded configuration"
+        run: |
+          sudo sed -i.bak \
+            's|^access-tokens = .*|access-tokens = github.com=ghs_expired000000000000000000000000000|' \
+            "$(sudo ls /etc/nix/install-flox-action-*.conf)"
+          printf '\n# Added by install-flox-action\naccess-tokens = github.com=ghs_legacy00000000000000000000000000\n' \
+            | sudo tee -a /etc/nix/nix.conf >/dev/null
+
+      - name: "Install Flox (second run)"
+        id: second
+        uses: "./"
+        with:
+          disable-metrics: "true"
+
+      # Each invocation writes its own file, and nix.conf reads the last
+      # include last, so the winning file is the one the second run wrote.
+      - name: "Verify the token in the winning file was refreshed"
+        env:
+          EXPECTED: "access-tokens = github.com=${{ github.token }}"
+        run: |
+          winner="$(sudo grep -oE '^!include install-flox-action-\S+\.conf' /etc/nix/nix.conf \
+            | tail -1 | awk '{print $2}')"
+          echo "winning file: $winner"
+          sudo grep -qF "$EXPECTED" "/etc/nix/$winner"
+          ! sudo grep -q 'ghs_expired' "/etc/nix/$winner"
+
+      - name: "Verify the legacy block was removed"
+        run: |
+          ! sudo grep -q 'ghs_legacy' /etc/nix/nix.conf
+          ! sudo grep -q '# Added by install-flox-action' /etc/nix/nix.conf
+
+      - name: "Verify every include line points at a file that exists"
+        run: |
+          sudo grep -oE '^!include install-flox-action-\S+\.conf' /etc/nix/nix.conf \
+            | awk '{print $2}' | while read -r name; do
+              sudo test -f "/etc/nix/$name" \
+                || { echo "dangling include: $name"; exit 1; }
+            done
+
+      - name: "Verify no include line is duplicated"
+        run: |
+          dupes="$(sudo grep -oE '^!include install-flox-action-\S+\.conf' /etc/nix/nix.conf \
+            | sort | uniq -d)"
+          if [[ -n "$dupes" ]]; then
+            echo "duplicated include lines:"; echo "$dupes"
+            sudo cat /etc/nix/nix.conf
+            exit 1
+          fi
+
+      - name: "Verify the second run skipped installation"
+        env:
+          FLOX_PREINSTALLED: ${{ steps.second.outputs.flox-preinstalled }}
+        run: |
+          if [[ "$FLOX_PREINSTALLED" != "true" ]]; then
+            echo "Expected flox-preinstalled to be 'true'"
+            exit 1
+          fi
+
+      - name: "Test: flox"
+        run: |
+          flox --version
+          cd $(mktemp -d)
+          flox init
+          flox install hello
+          flox activate -- hello
+
+      - name: "Test: nix can still read its configuration"
+        run: nix --extra-experimental-features nix-command config show >/dev/null
+
+  test-act:
+    name: "Test with nektos/act"
+    runs-on: "ubuntu-latest"
+    timeout-minutes: 30
+
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
+
+
+      - name: "Install act"
+        run: |
+          curl -fsSL -o /tmp/install-act.sh \
+            "https://raw.githubusercontent.com/nektos/act/4f411281417e88660bea1c1a1749aa71ae0bd60f/install.sh"
+          sudo bash /tmp/install-act.sh
+
+      - name: "Pull container image"
+        run: >-
+          docker pull
+          ghcr.io/catthehacker/ubuntu:js-24.04
+
+      - name: "Run action with act"
+        run: >-
+          ./bin/act push
+          -P ubuntu-latest=ghcr.io/catthehacker/ubuntu:js-24.04
+          -j test-action
+          --matrix os:ubuntu-latest
+          --matrix release-env:stable
+          --env FLOX_DISABLE_METRICS=true
+
+  report-failure:
+    name: "Report Failure"
+    runs-on: "ubuntu-slim"
+    timeout-minutes: 30
+
+    if: ${{ failure() && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'schedule') }}
+
+    needs:
+      - "test-javascript"
+      - "test-action"
+      - "test-new-inputs"
+      - "test-existing-nix"
+      - "test-repeat-run"
+      - "test-act"
+
+    steps:
+      - name: "Slack Notification"
+        uses: rtCamp/action-slack-notify@33ca3be66c6f378fe1610fd1d5258632dbed5e58 # v2
+
+        env:
+          SLACK_TITLE:      "Something broke CI for flox/flox on main"
+          SLACK_FOOTER:     "Thank you for caring"
+          SLACK_WEBHOOK:    "${{ secrets.MANAGED_SLACK_WEBHOOK }}"
+          SLACK_USERNAME:   "GitHub"
+          SLACK_ICON_EMOJI: ":poop:"
+          SLACK_COLOR:      "#ff2800"  # ferrari red -> https://encycolorpedia.com/ff2800
+          SLACK_LINK_NAMES: true

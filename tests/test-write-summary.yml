@@ -1,0 +1,47 @@
+name: Test write-summary input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: install
+        uses: .
+        with:
+          channel: stable
+          disable-metrics: "true"
+          write-summary: "true"
+          use-cache: "false"
+
+      - name: Assert flox-version output is set (summary mode)
+        env:
+          FLOX_VERSION: ${{ steps.install.outputs.flox-version }}
+        run: |
+          echo "flox-version: $FLOX_VERSION"
+          if [ -z "$FLOX_VERSION" ]; then
+            echo "FAIL: flox-version output is empty when write-summary=true"
+            exit 1
+          fi
+          echo "PASS: flox installed with write-summary=true, version '$FLOX_VERSION'"
+
+      - name: Assert flox-path output is set (summary mode)
+        env:
+          FLOX_PATH: ${{ steps.install.outputs.flox-path }}
+        run: |
+          echo "flox-path: $FLOX_PATH"
+          if [ -z "$FLOX_PATH" ]; then
+            echo "FAIL: flox-path output is empty when write-summary=true"
+            exit 1
+          fi
+          echo "PASS: flox-path is '$FLOX_PATH'"
+
+      - name: Assert flox binary is on PATH (summary mode)
+        run: |
+          if ! command -v flox >/dev/null 2>&1; then
+            echo "FAIL: flox is not on PATH"
+            exit 1
+          fi
+          echo "PASS: flox is on PATH"
+          flox --version
