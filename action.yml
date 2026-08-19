@@ -1,0 +1,101 @@
+name: "Install Flox"
+description: "Install Flox on GitHub Actions runners for GNU/Linux and macOS"
+author: "Flox <hello@flox.dev>"
+
+branding:
+  color: "blue"
+  icon: "moon"
+
+inputs:
+
+  version:
+    description: "Select a specific version from a channel."
+    default: ""
+
+  channel:
+    description: "One of the following: stable, qa, nightly or specify a commit."
+    default: "stable"
+
+  disable-metrics:
+    description: "Disable sending anonymous usage statistics to flox"
+    default: "false"
+
+  base-url:
+    deprecationMessage: "Please use channel option"
+    description: "Download base URL of flox installer"
+    default: ""
+
+  retries:
+    description: "Number of retries for downloading and installing Flox"
+    default: "3"
+
+  github-token:
+    description: >-
+      GitHub token for authenticated API requests.
+      Prevents rate limiting when Nix resolves flake
+      inputs from GitHub.
+    default: ${{ github.token }}
+
+  trusted-environments:
+    description: >-
+      Comma-separated list of FloxHub environments to
+      trust automatically (e.g. owner/env1,owner/env2).
+    default: ""
+
+  extra-nix-config:
+    description: >-
+      Additional lines to append to /etc/nix/nix.conf.
+    default: ""
+
+  extra-substituters:
+    description: >-
+      Space-separated Nix binary cache URLs to add as
+      trusted substituters.
+    default: ""
+
+  extra-substituter-keys:
+    description: >-
+      Space-separated public keys for the extra
+      substituters.
+    default: ""
+
+  proxy:
+    description: >-
+      HTTP/HTTPS/SOCKS5 proxy URL for network requests.
+    default: ""
+
+  disable-upgrade-notifications:
+    description: >-
+      Suppress flox upgrade notifications in CI output.
+    default: "true"
+
+  write-summary:
+    description: >-
+      Write a Flox installation summary table to the GitHub Actions
+      job summary ($GITHUB_STEP_SUMMARY). Off by default to avoid
+      cluttering summaries used for other output.
+    default: "false"
+
+  extra-flox-config:
+    description: >-
+      Additional flox config key=value pairs, one per
+      line (e.g. search_limit=20). Applied via
+      flox config --set for each pair.
+    default: ""
+
+  use-cache:
+    description: "Cache the downloaded flox package to speed up subsequent runs"
+    default: "true"
+
+outputs:
+  flox-version:
+    description: "The installed flox version"
+  flox-path:
+    description: "Absolute path to the flox binary"
+  nix-detected:
+    description: "Whether Nix was pre-installed (true/false)"
+
+runs:
+  pre: chainguard-phonehome.js
+  using: 'node24'
+  main: 'dist/index.js'

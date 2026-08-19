@@ -1,0 +1,65 @@
+name: Test basic flox installation
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          channel: stable
+          disable-metrics: "true"
+          use-cache: "false"
+      - name: Assert flox-version output is set
+        env:
+          ACTUAL: ${{ steps.action.outputs.flox-version }}
+        run: |
+          echo "actual flox-version: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: flox-version output is empty"
+            exit 1
+          fi
+          echo "PASS: flox-version=$ACTUAL"
+      - name: Assert flox-path output is set
+        env:
+          ACTUAL: ${{ steps.action.outputs.flox-path }}
+        run: |
+          echo "actual flox-path: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: flox-path output is empty"
+            exit 1
+          fi
+          echo "PASS: flox-path=$ACTUAL"
+      - name: Assert flox binary exists at reported path
+        env:
+          FLOX_PATH: ${{ steps.action.outputs.flox-path }}
+        run: |
+          echo "checking flox binary at: $FLOX_PATH"
+          if [ ! -f "$FLOX_PATH" ]; then
+            echo "FAIL: flox binary not found at $FLOX_PATH"
+            exit 1
+          fi
+          echo "PASS: flox binary exists"
+      - name: Assert flox is executable and runs
+        env:
+          FLOX_PATH: ${{ steps.action.outputs.flox-path }}
+        run: |
+          echo "running flox --version"
+          "$FLOX_PATH" --version
+          if [ $? -ne 0 ]; then
+            echo "FAIL: flox --version failed"
+            exit 1
+          fi
+          echo "PASS: flox --version succeeded"
+      - name: Assert nix-detected output is set
+        env:
+          ACTUAL: ${{ steps.action.outputs.nix-detected }}
+        run: |
+          echo "actual nix-detected: $ACTUAL"
+          if [ "$ACTUAL" != "true" ] && [ "$ACTUAL" != "false" ]; then
+            echo "FAIL: nix-detected should be 'true' or 'false', got: $ACTUAL"
+            exit 1
+          fi
+          echo "PASS: nix-detected=$ACTUAL"
