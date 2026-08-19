@@ -1,4 +1,4 @@
-name: Test basic Flox installation
+name: Test basic flox installation
 on:
   workflow_dispatch:
 jobs:
@@ -6,14 +6,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - id: install-flox
+      - id: action
         uses: .
         with:
+          channel: stable
           disable-metrics: "true"
           use-cache: "false"
       - name: Assert flox-version output is set
         env:
-          FLOX_VERSION: ${{ steps.install-flox.outputs.flox-version }}
+          FLOX_VERSION: ${{ steps.action.outputs.flox-version }}
         run: |
           echo "flox-version: $FLOX_VERSION"
           if [ -z "$FLOX_VERSION" ]; then
@@ -23,7 +24,7 @@ jobs:
           echo "PASS: flox-version=$FLOX_VERSION"
       - name: Assert flox-path output is set
         env:
-          FLOX_PATH: ${{ steps.install-flox.outputs.flox-path }}
+          FLOX_PATH: ${{ steps.action.outputs.flox-path }}
         run: |
           echo "flox-path: $FLOX_PATH"
           if [ -z "$FLOX_PATH" ]; then
@@ -37,7 +38,7 @@ jobs:
           echo "PASS: flox binary exists at $FLOX_PATH"
       - name: Assert nix-detected output is set
         env:
-          NIX_DETECTED: ${{ steps.install-flox.outputs.nix-detected }}
+          NIX_DETECTED: ${{ steps.action.outputs.nix-detected }}
         run: |
           echo "nix-detected: $NIX_DETECTED"
           if [ -z "$NIX_DETECTED" ]; then
@@ -45,7 +46,7 @@ jobs:
             exit 1
           fi
           if [ "$NIX_DETECTED" != "true" ] && [ "$NIX_DETECTED" != "false" ]; then
-            echo "FAIL: nix-detected must be 'true' or 'false', got '$NIX_DETECTED'"
+            echo "FAIL: nix-detected must be 'true' or 'false', got: $NIX_DETECTED"
             exit 1
           fi
           echo "PASS: nix-detected=$NIX_DETECTED"
