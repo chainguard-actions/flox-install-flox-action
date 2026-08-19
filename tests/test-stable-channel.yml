@@ -1,0 +1,51 @@
+name: Test Flox installation with stable channel
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: install-flox
+        name: Install Flox from stable channel
+        uses: .
+        with:
+          channel: stable
+
+      - name: Assert flox-version output is set
+        env:
+          FLOX_VERSION: ${{ steps.install-flox.outputs.flox-version }}
+        run: |
+          echo "flox-version: $FLOX_VERSION"
+          if [ -z "$FLOX_VERSION" ]; then
+            echo "FAIL: flox-version output is empty"
+            exit 1
+          fi
+          echo "PASS: flox-version=$FLOX_VERSION"
+
+      - name: Assert flox-path output is set and binary exists
+        env:
+          FLOX_PATH: ${{ steps.install-flox.outputs.flox-path }}
+        run: |
+          echo "flox-path: $FLOX_PATH"
+          if [ -z "$FLOX_PATH" ]; then
+            echo "FAIL: flox-path output is empty"
+            exit 1
+          fi
+          if [ ! -x "$FLOX_PATH" ]; then
+            echo "FAIL: flox binary not found or not executable at $FLOX_PATH"
+            exit 1
+          fi
+          echo "PASS: flox binary exists at $FLOX_PATH"
+
+      - name: Assert nix-detected is boolean
+        env:
+          NIX_DETECTED: ${{ steps.install-flox.outputs.nix-detected }}
+        run: |
+          echo "nix-detected: $NIX_DETECTED"
+          if [ "$NIX_DETECTED" != "true" ] && [ "$NIX_DETECTED" != "false" ]; then
+            echo "FAIL: nix-detected should be 'true' or 'false', got: $NIX_DETECTED"
+            exit 1
+          fi
+          echo "PASS: nix-detected=$NIX_DETECTED"
