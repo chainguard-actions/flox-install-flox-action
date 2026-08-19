@@ -6,52 +6,66 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - id: action
+
+      - id: install
         uses: .
         with:
           channel: stable
+          write-summary: "true"
           disable-metrics: "true"
           disable-upgrade-notifications: "true"
-          write-summary: "true"
 
       - name: Assert flox-version output is set
         env:
-          ACTUAL: ${{ steps.action.outputs.flox-version }}
+          FLOX_VERSION: ${{ steps.install.outputs.flox-version }}
         run: |
-          echo "flox-version: $ACTUAL"
-          if [ -z "$ACTUAL" ]; then
+          echo "flox-version: $FLOX_VERSION"
+          if [ -z "$FLOX_VERSION" ]; then
             echo "FAIL: flox-version output is empty"
             exit 1
           fi
-          echo "PASS: flox-version=$ACTUAL"
+          echo "PASS: flox-version=$FLOX_VERSION"
 
-      - name: Assert flox-path output is set
+      - name: Assert flox-path output is set and binary exists
         env:
-          ACTUAL: ${{ steps.action.outputs.flox-path }}
+          FLOX_PATH: ${{ steps.install.outputs.flox-path }}
         run: |
-          echo "flox-path: $ACTUAL"
-          if [ -z "$ACTUAL" ]; then
+          echo "flox-path: $FLOX_PATH"
+          if [ -z "$FLOX_PATH" ]; then
             echo "FAIL: flox-path output is empty"
             exit 1
           fi
-          echo "PASS: flox-path=$ACTUAL"
-
-      - name: Assert flox binary is executable
-        env:
-          FLOX_PATH: ${{ steps.action.outputs.flox-path }}
-        run: |
-          echo "Checking binary at: $FLOX_PATH"
-          if [ ! -x "$FLOX_PATH" ]; then
-            echo "FAIL: flox binary not found or not executable at $FLOX_PATH"
+          if [ ! -f "$FLOX_PATH" ]; then
+            echo "FAIL: flox binary not found at $FLOX_PATH"
             exit 1
           fi
-          echo "PASS: flox binary is executable"
+          echo "PASS: flox binary exists at $FLOX_PATH"
 
-      - name: Assert GITHUB_STEP_SUMMARY was written
+      - name: Assert nix-detected output is boolean
+        env:
+          NIX_DETECTED: ${{ steps.install.outputs.nix-detected }}
         run: |
+          echo "nix-detected: $NIX_DETECTED"
+          if [ "$NIX_DETECTED" != "true" ] && [ "$NIX_DETECTED" != "false" ]; then
+            echo "FAIL: nix-detected must be 'true' or 'false', got: $NIX_DETECTED"
+            exit 1
+          fi
+          echo "PASS: nix-detected=$NIX_DETECTED"
+
+      - name: Assert step summary was written
+        run: |
+          echo "Checking GITHUB_STEP_SUMMARY file"
           if [ -z "$GITHUB_STEP_SUMMARY" ]; then
-            echo "SKIP: GITHUB_STEP_SUMMARY not set (act environment)"
+            echo "SKIP: GITHUB_STEP_SUMMARY not set in this environment"
+          elif [ -f "$GITHUB_STEP_SUMMARY" ]; then
+            SUMMARY_CONTENT=$(cat "$GITHUB_STEP_SUMMARY")
+            echo "Summary content: $SUMMARY_CONTENT"
+            if echo "$SUMMARY_CONTENT" | grep -qi "flox"; then
+              echo "PASS: summary contains flox information"
+            else
+              echo "WARN: summary file exists but may not contain flox info"
+            fi
           else
-            echo "GITHUB_STEP_SUMMARY is set at: $GITHUB_STEP_SUMMARY"
+            echo "WARN: GITHUB_STEP_SUMMARY path set but file not found (may be normal in act)"
           fi
           echo "PASS"

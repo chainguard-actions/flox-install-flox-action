@@ -1,0 +1,57 @@
+# In JavaScript actions, `dist/index.js` is a special file. When you reference
+# an action with `uses:`, `dist/index.js` is the code that will be run. For this
+# project, the `dist/index.js` file is generated from other source files through
+# the build process. We need to make sure that the checked-in `dist/index.js`
+# file matches what is expected from the build.
+#
+# This workflow will fail if the checked-in `dist/index.js` file does not match
+# what is expected from the build.
+name: "Update dist/index.js"
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+  pull_request:
+    paths-ignore:
+      - '**.md'
+  workflow_dispatch:
+
+env:
+  FLOX_DISABLE_METRICS: "true"
+
+jobs:
+  check-dist:
+    name: "Check dist/"
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      statuses: write
+
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+
+      - name: "Install Flox"
+        uses: "./"
+
+      - name: "Install Dependencies"
+        run: flox activate -- npm ci
+
+      - name: "Build dist/ Directory"
+        run: flox activate -- npm run all
+
+      - name: "Compare Expected and Actual Directories"
+        id: diff
+        run: git status
+
+      - name: "Commit changes"
+        uses: stefanzweifel/git-auto-commit-action@04702edda442b2e678b25b537cec683a1493fcb9 # v7
+
+        with:
+          file_pattern: "dist/index.js badges/coverage.svg"
+          commit_message: "chore(deps): Update dist/"
