@@ -1,0 +1,46 @@
+name: Test flox installation with metrics disabled
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          channel: stable
+          disable-metrics: "true"
+          disable-upgrade-notifications: "true"
+          use-cache: "false"
+      - name: Assert flox-version output is set
+        env:
+          FLOX_VERSION: ${{ steps.action.outputs.flox-version }}
+        run: |
+          echo "flox-version: $FLOX_VERSION"
+          if [ -z "$FLOX_VERSION" ]; then
+            echo "FAIL: flox-version output is empty"
+            exit 1
+          fi
+          echo "PASS: flox-version=$FLOX_VERSION"
+      - name: Assert flox-path output is set
+        env:
+          FLOX_PATH: ${{ steps.action.outputs.flox-path }}
+        run: |
+          echo "flox-path: $FLOX_PATH"
+          if [ -z "$FLOX_PATH" ]; then
+            echo "FAIL: flox-path output is empty"
+            exit 1
+          fi
+          if [ ! -f "$FLOX_PATH" ]; then
+            echo "FAIL: flox binary not found at $FLOX_PATH"
+            exit 1
+          fi
+          echo "PASS: flox binary exists at $FLOX_PATH"
+      - name: Assert flox is functional
+        run: |
+          if ! command -v flox >/dev/null 2>&1; then
+            echo "FAIL: flox not found on PATH"
+            exit 1
+          fi
+          echo "PASS: flox is on PATH"

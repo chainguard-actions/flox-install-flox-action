@@ -1,0 +1,68 @@
+name: Test basic flox installation
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          channel: stable
+          disable-metrics: "true"
+          use-cache: "false"
+      - name: Assert flox-version output is set
+        env:
+          FLOX_VERSION: ${{ steps.action.outputs.flox-version }}
+        run: |
+          echo "flox-version: $FLOX_VERSION"
+          if [ -z "$FLOX_VERSION" ]; then
+            echo "FAIL: flox-version output is empty"
+            exit 1
+          fi
+          echo "PASS: flox-version=$FLOX_VERSION"
+      - name: Assert flox-path output is set
+        env:
+          FLOX_PATH: ${{ steps.action.outputs.flox-path }}
+        run: |
+          echo "flox-path: $FLOX_PATH"
+          if [ -z "$FLOX_PATH" ]; then
+            echo "FAIL: flox-path output is empty"
+            exit 1
+          fi
+          if [ ! -f "$FLOX_PATH" ]; then
+            echo "FAIL: flox binary not found at $FLOX_PATH"
+            exit 1
+          fi
+          echo "PASS: flox binary exists at $FLOX_PATH"
+      - name: Assert nix-detected output is set
+        env:
+          NIX_DETECTED: ${{ steps.action.outputs.nix-detected }}
+        run: |
+          echo "nix-detected: $NIX_DETECTED"
+          if [ -z "$NIX_DETECTED" ]; then
+            echo "FAIL: nix-detected output is empty"
+            exit 1
+          fi
+          if [ "$NIX_DETECTED" != "true" ] && [ "$NIX_DETECTED" != "false" ]; then
+            echo "FAIL: nix-detected must be 'true' or 'false', got: $NIX_DETECTED"
+            exit 1
+          fi
+          echo "PASS: nix-detected=$NIX_DETECTED"
+      - name: Assert flox binary is executable and on PATH
+        run: |
+          if ! command -v flox >/dev/null 2>&1; then
+            echo "FAIL: flox not found on PATH"
+            exit 1
+          fi
+          echo "PASS: flox is on PATH at $(command -v flox)"
+      - name: Assert flox --version works
+        run: |
+          OUTPUT=$(flox --version 2>&1)
+          echo "flox --version output: $OUTPUT"
+          if [ -z "$OUTPUT" ]; then
+            echo "FAIL: flox --version produced no output"
+            exit 1
+          fi
+          echo "PASS"
