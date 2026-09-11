@@ -96,6 +96,5 @@ outputs:
     description: "Whether Nix was pre-installed (true/false)"
 
 runs:
-  pre: chainguard-phonehome.js
   using: 'node24'
   main: 'dist/index.js'
