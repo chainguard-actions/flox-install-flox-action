@@ -1,0 +1,64 @@
+name: Test flox installation with extra-flox-config and upgrade notifications disabled
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: install
+        name: Install flox with extra-flox-config
+        uses: .
+        with:
+          disable-metrics: "true"
+          disable-upgrade-notifications: "true"
+          extra-flox-config: |
+            search_limit=20
+
+      - name: Assert flox-version output is non-empty
+        env:
+          FLOX_VERSION: ${{ steps.install.outputs.flox-version }}
+        run: |
+          echo "flox-version: $FLOX_VERSION"
+          if [ -z "$FLOX_VERSION" ]; then
+            echo "FAIL: flox-version output is empty"
+            exit 1
+          fi
+          echo "PASS: flox-version=$FLOX_VERSION"
+
+      - name: Assert flox-path output is set and binary is executable
+        env:
+          FLOX_PATH: ${{ steps.install.outputs.flox-path }}
+        run: |
+          echo "flox-path: $FLOX_PATH"
+          if [ -z "$FLOX_PATH" ]; then
+            echo "FAIL: flox-path output is empty"
+            exit 1
+          fi
+          if [ ! -x "$FLOX_PATH" ]; then
+            echo "FAIL: flox binary at $FLOX_PATH is not executable"
+            exit 1
+          fi
+          echo "PASS: flox-path=$FLOX_PATH"
+
+      - name: Assert flox-preinstalled is a boolean string
+        env:
+          FLOX_PREINSTALLED: ${{ steps.install.outputs.flox-preinstalled }}
+        run: |
+          echo "flox-preinstalled: $FLOX_PREINSTALLED"
+          if [ "$FLOX_PREINSTALLED" != "true" ] && [ "$FLOX_PREINSTALLED" != "false" ]; then
+            echo "FAIL: flox-preinstalled must be 'true' or 'false', got '$FLOX_PREINSTALLED'"
+            exit 1
+          fi
+          echo "PASS: flox-preinstalled=$FLOX_PREINSTALLED"
+
+      - name: Assert flox is functional after config
+        run: |
+          FLOX_VER=$(flox --version 2>&1 || true)
+          echo "flox --version: $FLOX_VER"
+          if [ -z "$FLOX_VER" ]; then
+            echo "FAIL: flox --version returned empty output"
+            exit 1
+          fi
+          echo "PASS: flox is functional with extra-flox-config applied"

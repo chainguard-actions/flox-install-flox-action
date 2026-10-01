@@ -1,0 +1,44 @@
+name: Test flox installation with metrics disabled
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: install
+        name: Install flox with metrics disabled
+        uses: .
+        with:
+          disable-metrics: "true"
+
+      - name: Assert flox-version output is non-empty
+        env:
+          FLOX_VERSION: ${{ steps.install.outputs.flox-version }}
+        run: |
+          echo "flox-version: $FLOX_VERSION"
+          if [ -z "$FLOX_VERSION" ]; then
+            echo "FAIL: flox-version output is empty"
+            exit 1
+          fi
+          echo "PASS: flox-version=$FLOX_VERSION"
+
+      - name: Assert FLOX_DISABLE_METRICS env var is set to true
+        run: |
+          echo "FLOX_DISABLE_METRICS=$FLOX_DISABLE_METRICS"
+          if [ "$FLOX_DISABLE_METRICS" != "true" ]; then
+            echo "FAIL: expected FLOX_DISABLE_METRICS=true, got '$FLOX_DISABLE_METRICS'"
+            exit 1
+          fi
+          echo "PASS: FLOX_DISABLE_METRICS is set to true"
+
+      - name: Assert flox binary is on PATH
+        run: |
+          FLOX_BIN=$(which flox 2>/dev/null || true)
+          echo "flox binary: $FLOX_BIN"
+          if [ -z "$FLOX_BIN" ]; then
+            echo "FAIL: flox not found on PATH"
+            exit 1
+          fi
+          echo "PASS: flox found at $FLOX_BIN"

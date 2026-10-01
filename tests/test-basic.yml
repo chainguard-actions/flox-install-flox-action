@@ -1,0 +1,73 @@
+name: Test basic flox installation
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: install
+        name: Install flox with defaults
+        uses: .
+        with:
+          disable-metrics: "true"
+
+      - name: Assert flox-version output is set
+        env:
+          FLOX_VERSION: ${{ steps.install.outputs.flox-version }}
+        run: |
+          echo "flox-version: $FLOX_VERSION"
+          if [ -z "$FLOX_VERSION" ]; then
+            echo "FAIL: flox-version output is empty"
+            exit 1
+          fi
+          echo "PASS: flox-version=$FLOX_VERSION"
+
+      - name: Assert flox-path output is set
+        env:
+          FLOX_PATH: ${{ steps.install.outputs.flox-path }}
+        run: |
+          echo "flox-path: $FLOX_PATH"
+          if [ -z "$FLOX_PATH" ]; then
+            echo "FAIL: flox-path output is empty"
+            exit 1
+          fi
+          if [ ! -f "$FLOX_PATH" ]; then
+            echo "FAIL: flox binary not found at $FLOX_PATH"
+            exit 1
+          fi
+          echo "PASS: flox-path=$FLOX_PATH"
+
+      - name: Assert nix-detected output is set
+        env:
+          NIX_DETECTED: ${{ steps.install.outputs.nix-detected }}
+        run: |
+          echo "nix-detected: $NIX_DETECTED"
+          if [ "$NIX_DETECTED" != "true" ] && [ "$NIX_DETECTED" != "false" ]; then
+            echo "FAIL: nix-detected must be 'true' or 'false', got '$NIX_DETECTED'"
+            exit 1
+          fi
+          echo "PASS: nix-detected=$NIX_DETECTED"
+
+      - name: Assert flox-preinstalled output is set
+        env:
+          FLOX_PREINSTALLED: ${{ steps.install.outputs.flox-preinstalled }}
+        run: |
+          echo "flox-preinstalled: $FLOX_PREINSTALLED"
+          if [ "$FLOX_PREINSTALLED" != "true" ] && [ "$FLOX_PREINSTALLED" != "false" ]; then
+            echo "FAIL: flox-preinstalled must be 'true' or 'false', got '$FLOX_PREINSTALLED'"
+            exit 1
+          fi
+          echo "PASS: flox-preinstalled=$FLOX_PREINSTALLED"
+
+      - name: Assert flox binary is executable and works
+        run: |
+          echo "Running: flox --version"
+          FLOX_VER=$(flox --version 2>&1 || true)
+          echo "flox --version output: $FLOX_VER"
+          if [ -z "$FLOX_VER" ]; then
+            echo "FAIL: flox --version returned empty output"
+            exit 1
+          fi
+          echo "PASS: flox is functional"

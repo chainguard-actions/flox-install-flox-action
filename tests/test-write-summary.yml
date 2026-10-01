@@ -1,0 +1,64 @@
+name: Test flox installation with write-summary enabled
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: install
+        name: Install flox with write-summary enabled
+        uses: .
+        with:
+          disable-metrics: "true"
+          write-summary: "true"
+          channel: "stable"
+
+      - name: Assert flox-version output is non-empty
+        env:
+          FLOX_VERSION: ${{ steps.install.outputs.flox-version }}
+        run: |
+          echo "flox-version: $FLOX_VERSION"
+          if [ -z "$FLOX_VERSION" ]; then
+            echo "FAIL: flox-version output is empty"
+            exit 1
+          fi
+          echo "PASS: flox-version=$FLOX_VERSION"
+
+      - name: Assert flox-path output points to a real binary
+        env:
+          FLOX_PATH: ${{ steps.install.outputs.flox-path }}
+        run: |
+          echo "flox-path: $FLOX_PATH"
+          if [ -z "$FLOX_PATH" ]; then
+            echo "FAIL: flox-path output is empty"
+            exit 1
+          fi
+          if [ ! -x "$FLOX_PATH" ]; then
+            echo "FAIL: flox binary at $FLOX_PATH is not executable"
+            exit 1
+          fi
+          echo "PASS: flox-path=$FLOX_PATH"
+
+      - name: Assert nix-detected is a boolean string
+        env:
+          NIX_DETECTED: ${{ steps.install.outputs.nix-detected }}
+        run: |
+          echo "nix-detected: $NIX_DETECTED"
+          if [ "$NIX_DETECTED" != "true" ] && [ "$NIX_DETECTED" != "false" ]; then
+            echo "FAIL: nix-detected must be 'true' or 'false', got '$NIX_DETECTED'"
+            exit 1
+          fi
+          echo "PASS: nix-detected=$NIX_DETECTED"
+
+      - name: Assert flox-preinstalled is false (fresh install)
+        env:
+          FLOX_PREINSTALLED: ${{ steps.install.outputs.flox-preinstalled }}
+        run: |
+          echo "flox-preinstalled: $FLOX_PREINSTALLED"
+          if [ "$FLOX_PREINSTALLED" != "false" ]; then
+            echo "FAIL: expected flox-preinstalled=false on a fresh runner, got '$FLOX_PREINSTALLED'"
+            exit 1
+          fi
+          echo "PASS: flox-preinstalled=false (fresh install confirmed)"
