@@ -15,6 +15,7 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 | v2.5.2 | [`v2.5.2`](https://github.com/chainguard-actions/flox-install-flox-action/tree/v2.5.2) | [`8c71d71`](https://github.com/flox/install-flox-action/commit/8c71d71672ea52e1494b168ac0f27d46b96068be) |
 | v2.5.3 | [`v2.5.3`](https://github.com/chainguard-actions/flox-install-flox-action/tree/v2.5.3) | [`3b80351`](https://github.com/flox/install-flox-action/commit/3b80351ae97bbe063f264dc88fbd505507054963) |
 | v2.6.0 | [`v2.6.0`](https://github.com/chainguard-actions/flox-install-flox-action/tree/v2.6.0) | [`1128abd`](https://github.com/flox/install-flox-action/commit/1128abd73431089ab9d871c893b4e72a729354e1) |
+| v2.7.0 | [`v2.7.0`](https://github.com/chainguard-actions/flox-install-flox-action/tree/v2.7.0) | [`5bb9eaa`](https://github.com/flox/install-flox-action/commit/5bb9eaaffbeaa699a8251a1ae21ecf4c8e0e37d4) |
 
 ## Privacy
 
