@@ -6,16 +6,16 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 
 ## Versions
 
-| Version | Tag | Upstream commit |
-|---------|-----|-----------------|
-| v2.4.0 | [`v2.4.0`](https://github.com/chainguard-actions/flox-install-flox-action/tree/v2.4.0) | [`c94e7e1`](https://github.com/flox/install-flox-action/commit/c94e7e1ab56ae14fe98bae4fd84384fd135f0c2a) |
-| v2.4.1 | [`v2.4.1`](https://github.com/chainguard-actions/flox-install-flox-action/tree/v2.4.1) | [`6e70b26`](https://github.com/flox/install-flox-action/commit/6e70b2624cea62b0f11ea4a28e719fe1c86c028b) |
-| v2.5.0 | [`v2.5.0`](https://github.com/chainguard-actions/flox-install-flox-action/tree/v2.5.0) | [`9ccce8e`](https://github.com/flox/install-flox-action/commit/9ccce8e51f21ae42d784682a2bba479ea52c6b11) |
-| v2.5.1 | [`v2.5.1`](https://github.com/chainguard-actions/flox-install-flox-action/tree/v2.5.1) | [`f6002ed`](https://github.com/flox/install-flox-action/commit/f6002ed63e483f134001de7b4b45be891e00b09f) |
-| v2.5.2 | [`v2.5.2`](https://github.com/chainguard-actions/flox-install-flox-action/tree/v2.5.2) | [`8c71d71`](https://github.com/flox/install-flox-action/commit/8c71d71672ea52e1494b168ac0f27d46b96068be) |
-| v2.5.3 | [`v2.5.3`](https://github.com/chainguard-actions/flox-install-flox-action/tree/v2.5.3) | [`3b80351`](https://github.com/flox/install-flox-action/commit/3b80351ae97bbe063f264dc88fbd505507054963) |
-| v2.6.0 | [`v2.6.0`](https://github.com/chainguard-actions/flox-install-flox-action/tree/v2.6.0) | [`1128abd`](https://github.com/flox/install-flox-action/commit/1128abd73431089ab9d871c893b4e72a729354e1) |
-| v2.7.0 | [`v2.7.0`](https://github.com/chainguard-actions/flox-install-flox-action/tree/v2.7.0) | [`5bb9eaa`](https://github.com/flox/install-flox-action/commit/5bb9eaaffbeaa699a8251a1ae21ecf4c8e0e37d4) |
+| Version | Tag | Upstream commit | Hardening report |
+|---------|-----|-----------------|------------------|
+| v2.4.0 | [`v2.4.0`](https://github.com/chainguard-actions/flox-install-flox-action/tree/v2.4.0) | [`c94e7e1`](https://github.com/flox/install-flox-action/commit/c94e7e1ab56ae14fe98bae4fd84384fd135f0c2a) | [`HARDENING.md`](https://github.com/chainguard-actions/flox-install-flox-action/blob/v2.4.0/HARDENING.md) |
+| v2.4.1 | [`v2.4.1`](https://github.com/chainguard-actions/flox-install-flox-action/tree/v2.4.1) | [`6e70b26`](https://github.com/flox/install-flox-action/commit/6e70b2624cea62b0f11ea4a28e719fe1c86c028b) | [`HARDENING.md`](https://github.com/chainguard-actions/flox-install-flox-action/blob/v2.4.1/HARDENING.md) |
+| v2.5.0 | [`v2.5.0`](https://github.com/chainguard-actions/flox-install-flox-action/tree/v2.5.0) | [`9ccce8e`](https://github.com/flox/install-flox-action/commit/9ccce8e51f21ae42d784682a2bba479ea52c6b11) | [`HARDENING.md`](https://github.com/chainguard-actions/flox-install-flox-action/blob/v2.5.0/HARDENING.md) |
+| v2.5.1 | [`v2.5.1`](https://github.com/chainguard-actions/flox-install-flox-action/tree/v2.5.1) | [`f6002ed`](https://github.com/flox/install-flox-action/commit/f6002ed63e483f134001de7b4b45be891e00b09f) | [`HARDENING.md`](https://github.com/chainguard-actions/flox-install-flox-action/blob/v2.5.1/HARDENING.md) |
+| v2.5.2 | [`v2.5.2`](https://github.com/chainguard-actions/flox-install-flox-action/tree/v2.5.2) | [`8c71d71`](https://github.com/flox/install-flox-action/commit/8c71d71672ea52e1494b168ac0f27d46b96068be) | [`HARDENING.md`](https://github.com/chainguard-actions/flox-install-flox-action/blob/v2.5.2/HARDENING.md) |
+| v2.5.3 | [`v2.5.3`](https://github.com/chainguard-actions/flox-install-flox-action/tree/v2.5.3) | [`3b80351`](https://github.com/flox/install-flox-action/commit/3b80351ae97bbe063f264dc88fbd505507054963) | [`HARDENING.md`](https://github.com/chainguard-actions/flox-install-flox-action/blob/v2.5.3/HARDENING.md) |
+| v2.6.0 | [`v2.6.0`](https://github.com/chainguard-actions/flox-install-flox-action/tree/v2.6.0) | [`1128abd`](https://github.com/flox/install-flox-action/commit/1128abd73431089ab9d871c893b4e72a729354e1) | [`HARDENING.md`](https://github.com/chainguard-actions/flox-install-flox-action/blob/v2.6.0/HARDENING.md) |
+| v2.7.0 | [`v2.7.0`](https://github.com/chainguard-actions/flox-install-flox-action/tree/v2.7.0) | [`5bb9eaa`](https://github.com/flox/install-flox-action/commit/5bb9eaaffbeaa699a8251a1ae21ecf4c8e0e37d4) | [`HARDENING.md`](https://github.com/chainguard-actions/flox-install-flox-action/blob/v2.7.0/HARDENING.md) |
 
 ## Privacy
 
